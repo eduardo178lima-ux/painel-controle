@@ -1,179 +1,55 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
 <meta charset="UTF-8">
-<title>Painel Inteligente de Recebimento de Grãos</title>
-
+<title>Painel Inteligente de Recebimento</title>
 <style>
-
 body{
     font-family: Arial, sans-serif;
     background:#f5f5f5;
     padding:20px;
 }
-
 .container{
     background:white;
     padding:20px;
     border-radius:8px;
-    max-width:1200px;
 }
-
-.row{
-    display:flex;
-    flex-wrap:wrap;
-    gap:10px;
-}
-
-.campo{
-    width:300px;
-}
-
 input{
-    width:100%;
     padding:8px;
+    width:300px;
+    margin-bottom:10px;
 }
-
 button{
+    padding:10px;
     background:#0078D4;
     color:white;
     border:none;
-    padding:12px;
-    margin-top:15px;
-    cursor:pointer;
 }
-
 #resultado{
     margin-top:20px;
     border:1px solid #ccc;
-    background:#fafafa;
     padding:15px;
 }
-
-.ok{
-    color:green;
-}
-
-.alerta{
-    color:orange;
-}
-
-.erro{
-    color:red;
-}
-
 </style>
 </head>
-
 <body>
 
 <div class="container">
 
 <h2>Painel Inteligente de Recebimento</h2>
 
-<div class="row">
-
-<div class="campo">
-<label>Pedido SAP</label>
+<p>Pedido SAP</p>
 <input id="pedidoSAP">
-</div>
 
-<div class="campo">
-<label>Fornecedor</label>
+<p>Fornecedor</p>
 <input id="fornecedor">
-</div>
 
-<div class="campo">
-<label>Material</label>
-<input id="material">
-</div>
-
-<div class="campo">
-<label>Centro Origem</label>
-<input id="origem">
-</div>
-
-<div class="campo">
-<label>Centro Destino</label>
-<input id="destino">
-</div>
-
-</div>
-
-<hr>
-
-<h3>Upload XML</h3>
-
+<p>Upload XML</p>
 <input type="file" id="xmlFile" accept=".xml">
 
-<hr>
+<br><br>
 
-<div class="row">
-
-<div class="campo">
-<label>Chave NF-e</label>
-<input id="chave" readonly>
-</div>
-
-<div class="campo">
-<label>Número NF</label>
-<input id="numeroNF" readonly>
-</div>
-
-<div class="campo">
-<label>CNPJ Emitente</label>
-<input id="cnpjEmit" readonly>
-</div>
-
-<div class="campo">
-<label>IE Emitente</label>
-<input id="ieEmit" readonly>
-</div>
-
-<div class="campo">
-<label>CNPJ Transportador</label>
-<input id="cnpjTransp" readonly>
-</div>
-
-<div class="campo">
-<label>IE Transportador</label>
-<input id="ieTransp" readonly>
-</div>
-
-<div class="campo">
-<label>Placa</label>
-<input id="placa" readonly>
-</div>
-
-<div class="campo">
-<label>Peso Líquido</label>
-<input id="peso" readonly>
-</div>
-
-<div class="campo">
-<label>Valor Unitário</label>
-<input id="vUnit" readonly>
-</div>
-
-<div class="campo">
-<label>Valor NF</label>
-<input id="valorNF" readonly>
-</div>
-
-</div>
-
-<h3>Informações Complementares</h3>
-
-<textarea
-id="informacoes"
-style="width:100%;height:120px;"
-readonly>
-</textarea>
-
-<button onclick="validar()">
-Validar Recebimento
-</button>
+<button onclick="validar()">Validar</button>
 
 <div id="resultado"></div>
 
@@ -181,26 +57,15 @@ Validar Recebimento
 
 <script>
 
-document
-.getElementById("xmlFile")
-.addEventListener("change", carregarXML);
+document.getElementById("xmlFile").addEventListener("change", carregarXML);
 
-function texto(xml, tag){
-
-const item =
-xml.getElementsByTagName(tag)[0];
-
-return item ? item.textContent : "";
-
-}
+let dadosXML = {};
 
 function carregarXML(event){
 
 const file = event.target.files[0];
 
-if(!file){
-    return;
-}
+if(!file) return;
 
 const reader = new FileReader();
 
@@ -214,38 +79,27 @@ e.target.result,
 "text/xml"
 );
 
-document.getElementById("chave").value =
-texto(xml,"chNFe");
+function buscar(tag){
+    const elemento =
+    xml.getElementsByTagName(tag)[0];
 
-document.getElementById("numeroNF").value =
-texto(xml,"nNF");
+    return elemento ?
+        elemento.textContent :
+        "";
+}
 
-document.getElementById("ieEmit").value =
-texto(xml,"IE");
+dadosXML = {
+    chave: buscar("chNFe"),
+    numeroNF: buscar("nNF"),
+    cnpj: buscar("CNPJ"),
+    ie: buscar("IE"),
+    placa: buscar("placa"),
+    peso: buscar("pesoL"),
+    valorNF: buscar("vNF"),
+    valorUnitario: buscar("vUnCom")
+};
 
-document.getElementById("cnpjEmit").value =
-texto(xml,"CNPJ");
-
-document.getElementById("ieTransp").value =
-texto(xml,"IE");
-
-document.getElementById("cnpjTransp").value =
-texto(xml,"CNPJ");
-
-document.getElementById("placa").value =
-texto(xml,"placa");
-
-document.getElementById("peso").value =
-texto(xml,"pesoL");
-
-document.getElementById("vUnit").value =
-texto(xml,"vUnCom");
-
-document.getElementById("valorNF").value =
-texto(xml,"vNF");
-
-document.getElementById("informacoes").value =
-texto(xml,"infCpl");
+alert("XML carregado com sucesso");
 
 };
 
@@ -257,54 +111,17 @@ function validar(){
 
 let html = "";
 
-html += "<h3>Validações</h3>";
+html += "<h3>Dados XML</h3>";
 
-html += "<p class='ok'>✅ XML carregado</p>";
+html += "Chave: " + (dadosXML.chave || "") + "<br>";
+html += "NF: " + (dadosXML.numeroNF || "") + "<br>";
+html += "CNPJ: " + (dadosXML.cnpj || "") + "<br>";
+html += "IE: " + (dadosXML.ie || "") + "<br>";
+html += "Placa: " + (dadosXML.placa || "") + "<br>";
+html += "Peso: " + (dadosXML.peso || "") + "<br>";
+html += "Valor NF: " + (dadosXML.valorNF || "") + "<br>";
 
-if(
-document.getElementById("chave").value
-){
-html += "<p class='ok'>✅ Chave NF encontrada</p>";
-}
-else{
-html += "<p class='erro'>❌ Chave NF não encontrada</p>";
-}
-
-if(
-document.getElementById("cnpjEmit").value
-){
-html += "<p class='ok'>✅ CNPJ encontrado</p>";
-}
-else{
-html += "<p class='erro'>❌ CNPJ não encontrado</p>";
-}
-
-if(
-document.getElementById("ieEmit").value
-){
-html += "<p class='ok'>✅ IE encontrada</p>";
-}
-else{
-html += "<p class='alerta'>⚠ IE não encontrada</p>";
-}
-
-html += "<hr>";
-
-html += `
-<b>Próxima etapa:</b><br>
-Integração SAP para validar:
-<ul>
-<li>Saldo do Pedido</li>
-<li>Fornecedor</li>
-<li>Material</li>
-<li>Centro Origem</li>
-<li>Centro Destino</li>
-<li>Histórico de recebimentos</li>
-</ul>
-`;
-
-document.getElementById("resultado")
-.innerHTML = html;
+document.getElementById("resultado").innerHTML = html;
 
 }
 
