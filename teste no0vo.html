@@ -3,53 +3,174 @@
 <head>
 <meta charset="UTF-8">
 <title>Painel Inteligente de Recebimento</title>
+
 <style>
+
 body{
     font-family: Arial, sans-serif;
-    background:#f5f5f5;
-    padding:20px;
+    background:#f4f4f4;
+    margin:20px;
 }
+
 .container{
-    background:white;
+    background:#ffffff;
     padding:20px;
     border-radius:8px;
+    max-width:1400px;
 }
+
+.row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:15px;
+}
+
+.campo{
+    width:250px;
+}
+
+label{
+    font-weight:bold;
+}
+
 input{
+    width:100%;
     padding:8px;
-    width:300px;
-    margin-bottom:10px;
 }
+
+textarea{
+    width:100%;
+    height:120px;
+}
+
 button{
-    padding:10px;
+    margin-top:20px;
+    padding:10px 20px;
     background:#0078D4;
     color:white;
     border:none;
+    cursor:pointer;
 }
+
 #resultado{
     margin-top:20px;
-    border:1px solid #ccc;
     padding:15px;
+    border:1px solid #ccc;
+    background:white;
 }
+
+.ok{
+    color:green;
+}
+
+.alerta{
+    color:orange;
+}
+
+.erro{
+    color:red;
+}
+
 </style>
+
 </head>
 <body>
 
 <div class="container">
 
-<h2>Painel Inteligente de Recebimento</h2>
+<h2>Painel Inteligente de Recebimento de Grãos</h2>
 
-<p>Pedido SAP</p>
+<div class="row">
+
+<div class="campo">
+<label>Pedido SAP</label>
 <input id="pedidoSAP">
+</div>
 
-<p>Fornecedor</p>
+<div class="campo">
+<label>Fornecedor</label>
 <input id="fornecedor">
+</div>
 
-<p>Upload XML</p>
+<div class="campo">
+<label>Material</label>
+<input id="material">
+</div>
+
+<div class="campo">
+<label>Centro Origem</label>
+<input id="origem">
+</div>
+
+<div class="campo">
+<label>Centro Destino</label>
+<input id="destino">
+</div>
+
+</div>
+
+<br>
+
+<label>Upload XML</label>
 <input type="file" id="xmlFile" accept=".xml">
 
-<br><br>
+<hr>
 
-<button onclick="validar()">Validar</button>
+<div class="row">
+
+<div class="campo">
+<label>Chave NF-e</label>
+<input id="chave" readonly>
+</div>
+
+<div class="campo">
+<label>Número NF</label>
+<input id="numeroNF" readonly>
+</div>
+
+<div class="campo">
+<label>CNPJ Emitente</label>
+<input id="cnpjEmit" readonly>
+</div>
+
+<div class="campo">
+<label>IE Emitente</label>
+<input id="ieEmit" readonly>
+</div>
+
+<div class="campo">
+<label>Placa</label>
+<input id="placa" readonly>
+</div>
+
+<div class="campo">
+<label>Peso Líquido</label>
+<input id="peso" readonly>
+</div>
+
+<div class="campo">
+<label>Valor Unitário</label>
+<input id="valorUnitario" readonly>
+</div>
+
+<div class="campo">
+<label>Valor NF</label>
+<input id="valorNF" readonly>
+</div>
+
+</div>
+
+<br>
+
+<label>Informações Complementares</label>
+
+<textarea id="informacoes" readonly></textarea>
+
+<br>
+
+<button onclick="validar()">
+Validar Recebimento
+</button>
 
 <div id="resultado"></div>
 
@@ -57,19 +178,31 @@ button{
 
 <script>
 
-document.getElementById("xmlFile").addEventListener("change", carregarXML);
-
 let dadosXML = {};
+
+document
+.getElementById("xmlFile")
+.addEventListener("change", carregarXML);
+
+function buscar(xml, tag){
+
+let item = xml.getElementsByTagName(tag)[0];
+
+return item ? item.textContent : "";
+
+}
 
 function carregarXML(event){
 
-const file = event.target.files[0];
+const arquivo = event.target.files[0];
 
-if(!file) return;
+if(!arquivo){
+    return;
+}
 
-const reader = new FileReader();
+const leitor = new FileReader();
 
-reader.onload = function(e){
+leitor.onload = function(e){
 
 const parser = new DOMParser();
 
@@ -79,47 +212,102 @@ e.target.result,
 "text/xml"
 );
 
-function buscar(tag){
-    const elemento =
-    xml.getElementsByTagName(tag)[0];
+dadosXML.chave =
+buscar(xml,"chNFe");
 
-    return elemento ?
-        elemento.textContent :
-        "";
-}
+dadosXML.numeroNF =
+buscar(xml,"nNF");
 
-dadosXML = {
-    chave: buscar("chNFe"),
-    numeroNF: buscar("nNF"),
-    cnpj: buscar("CNPJ"),
-    ie: buscar("IE"),
-    placa: buscar("placa"),
-    peso: buscar("pesoL"),
-    valorNF: buscar("vNF"),
-    valorUnitario: buscar("vUnCom")
+dadosXML.ie =
+buscar(xml,"IE");
+
+dadosXML.cnpj =
+buscar(xml,"CNPJ");
+
+dadosXML.placa =
+buscar(xml,"placa");
+
+dadosXML.peso =
+buscar(xml,"pesoL");
+
+dadosXML.valorUnitario =
+buscar(xml,"vUnCom");
+
+dadosXML.valorNF =
+buscar(xml,"vNF");
+
+dadosXML.info =
+buscar(xml,"infCpl");
+
+document.getElementById("chave").value =
+dadosXML.chave;
+
+document.getElementById("numeroNF").value =
+dadosXML.numeroNF;
+
+document.getElementById("ieEmit").value =
+dadosXML.ie;
+
+document.getElementById("cnpjEmit").value =
+dadosXML.cnpj;
+
+document.getElementById("placa").value =
+dadosXML.placa;
+
+document.getElementById("peso").value =
+dadosXML.peso;
+
+document.getElementById("valorUnitario").value =
+dadosXML.valorUnitario;
+
+document.getElementById("valorNF").value =
+dadosXML.valorNF;
+
+document.getElementById("informacoes").value =
+dadosXML.info;
+
+alert("XML carregado com sucesso.");
+
 };
 
-alert("XML carregado com sucesso");
-
-};
-
-reader.readAsText(file);
+leitor.readAsText(arquivo);
 
 }
 
 function validar(){
 
-let html = "";
+let html = "<h3>Resultado da Validação</h3>";
 
-html += "<h3>Dados XML</h3>";
+if(dadosXML.chave){
+    html += "<p class='ok'>✅ Chave NF encontrada</p>";
+}else{
+    html += "<p class='erro'>❌ Chave NF não encontrada</p>";
+}
 
-html += "Chave: " + (dadosXML.chave || "") + "<br>";
-html += "NF: " + (dadosXML.numeroNF || "") + "<br>";
-html += "CNPJ: " + (dadosXML.cnpj || "") + "<br>";
-html += "IE: " + (dadosXML.ie || "") + "<br>";
-html += "Placa: " + (dadosXML.placa || "") + "<br>";
-html += "Peso: " + (dadosXML.peso || "") + "<br>";
-html += "Valor NF: " + (dadosXML.valorNF || "") + "<br>";
+if(dadosXML.cnpj){
+    html += "<p class='ok'>✅ CNPJ encontrado</p>";
+}else{
+    html += "<p class='erro'>❌ CNPJ não encontrado</p>";
+}
+
+if(dadosXML.ie){
+    html += "<p class='ok'>✅ IE encontrada</p>";
+}else{
+    html += "<p class='alerta'>⚠ IE não encontrada</p>";
+}
+
+if(dadosXML.valorNF){
+    html += "<p class='ok'>✅ Valor NF encontrado</p>";
+}
+
+html += "<hr>";
+
+html += "<b>Integração SAP futura:</b><br>";
+html += "• Validar saldo do pedido<br>";
+html += "• Validar fornecedor<br>";
+html += "• Validar material<br>";
+html += "• Validar origem e destino<br>";
+html += "• Comparar histórico de recebimentos<br>";
 
 document.getElementById("resultado").innerHTML = html;
 
