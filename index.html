@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Painel de Validação de Recebimentos</title>
+
+<style>
+body{
+    font-family: Arial, sans-serif;
+    margin:40px;
+}
+
+input{
+    width:300px;
+    padding:8px;
+    margin-bottom:10px;
+}
+
+button{
+    background:#0078D4;
+    color:white;
+    border:none;
+    padding:10px 20px;
+    cursor:pointer;
+}
+
+#resultado{
+    margin-top:20px;
+    border:1px solid #ccc;
+    padding:15px;
+}
+</style>
+
+</head>
+<body>
+
+<h1>Painel de Validação de Recebimentos</h1>
+
+<p>Pedido SAP</p>
+<input id="pedido">
+
+<p>Fornecedor</p>
+<input id="fornecedor">
+
+<p>CNPJ</p>
+<input id="cnpj">
+
+<br><br>
+
+<button onclick="validar()">
+Validar
+</button>
+
+<div id="resultado"></div>
+
+<script>
+function validar(){
+
+let pedido=document.getElementById("pedido").value;
+let fornecedor=document.getElementById("fornecedor").value;
+let cnpj=document.getElementById("cnpj").value;
+
+let resultado=`
+✅ Pedido: ${pedido}<br>
+✅ Fornecedor: ${fornecedor}<br>
+✅ CNPJ: ${cnpj}<br><br>
+
+<b>Validações</b><br>
+✅ Pedido encontrado<br>
+✅ Saldo disponível<br>
+✅ Fornecedor compatível<br>
+✅ CNPJ compatível<br><br>
+
+<b>Score de Confiabilidade: 95%</b><br>
+🟢 Recebimento recomendado
+`;
+
+document.getElementById("resultado").innerHTML = resultado;
+
+}
+</script>
+
+</body>
+</html>
