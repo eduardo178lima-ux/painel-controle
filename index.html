@@ -1,84 +1,175 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<title>Painel de Validação de Recebimentos</title>
+Sub TROCA_ProcessarXML()
 
-<style>
-body{
-    font-family: Arial, sans-serif;
-    margin:40px;
-}
+    Dim resposta As VbMsgBoxResult
+    resposta = MsgBox("Deseja baixar o XML via SAP?", vbYesNo + vbQuestion, "Download XML")
 
-input{
-    width:300px;
-    padding:8px;
-    margin-bottom:10px;
-}
+    If resposta = vbYes Then
+        ' Define o nome do arquivo com base na cï¿½lula D6
+        Dim nomeArquivo As String
+        nomeArquivo = Range("D6").Value
 
-button{
-    background:#0078D4;
-    color:white;
-    border:none;
-    padding:10px 20px;
-    cursor:pointer;
-}
+        ' Verifica se a chave estï¿½ vï¿½lida
+        If nomeArquivo = "" Or nomeArquivo = "@5C\QErro@" Then
+            MsgBox "Chave da nota inválida. Não é possível salvar o XML.", vbCritical
+            Exit Sub
+        End If
 
-#resultado{
-    margin-top:20px;
-    border:1px solid #ccc;
-    padding:15px;
-}
-</style>
+        ' Executa o script SAP para baixar o XML
+        Dim session As Object
+        Set session = GetObject("SAPGUI").GetScriptingEngine.Children(0).Children(0)
 
-</head>
-<body>
+        session.findById("wnd[0]/tbar[0]/okcd").Text = "/nz060063"
+        session.findById("wnd[0]").sendVKey 0
+        session.findById("wnd[0]/usr/radP_XML").SetFocus
+        session.findById("wnd[0]/usr/radP_XML").Select
+        session.findById("wnd[0]/usr/btn%_S_NFEIDX_%_APP_%-VALU_PUSH").press
+        session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/txtRSCSEL_255-SLOW_I[1,0]").Text = nomeArquivo
+        session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/txtRSCSEL_255-SLOW_I[1,0]").caretPosition = 44
+        session.findById("wnd[1]/tbar[0]/btn[8]").press
+        session.findById("wnd[0]").sendVKey 8
+        session.findById("wnd[0]/tbar[0]/btn[3]").press
 
-<h1>Painel de Validação de Recebimentos</h1>
+       
 
-<p>Pedido SAP</p>
-<input id="pedido">
+        MsgBox "XML salvo com sucesso em: " & caminhoSalvar, vbInformation
+    End If
 
-<p>Fornecedor</p>
-<input id="fornecedor">
 
-<p>CNPJ</p>
-<input id="cnpj">
 
-<br><br>
+    Call CarregarXML
 
-<button onclick="validar()">
-Validar
-</button>
 
-<div id="resultado"></div>
+End Sub
+    
 
-<script>
-function validar(){
+Sub CarregarXML()
 
-let pedido = document.getElementById("pedido").value;
-let fornecedor = document.getElementById("fornecedor").value;
-let cnpj = document.getElementById("cnpj").value;
+    Dim xmlDoc As Object
+    Dim chNFeNode As Object
+    Dim numNF As Object
+    Dim ieEmit As Object
+    Dim cnpjEmit As Object
+    Dim ieTransp As Object
+    Dim cnpjTransp As Object
+    Dim placaVeic As Object
+    Dim vlrUnit As Object
+    Dim vlrXMLNF
+    Dim pesoLiquido As Object
+    Dim filePath As String
+    filePath = Application.GetOpenFilename("Arquivos XML (*.xml), *.xml", , "Selecione o XML da NF-e")
+    If filePath = "Falso" Then Exit Sub
 
-let resultado = `
-✅ Pedido: ${pedido}<br>
-✅ Fornecedor: ${fornecedor}<br>
-✅ CNPJ: ${cnpj}<br><br>
+    Set xmlDoc = CreateObject("MSXML2.DOMDocument.6.0")
+    xmlDoc.async = False
+    xmlDoc.Load filePath
 
-<b>Validações</b><br>
-✅ Pedido encontrado<br>
-✅ Saldo disponível<br>
-✅ Fornecedor compatível<br>
-✅ CNPJ compatível<br><br>
+    If xmlDoc.ParseError.ErrorCode <> 0 Then
+        MsgBox "Erro ao carregar XML: " & xmlDoc.ParseError.Reason
+        Exit Sub
+    End If
 
-<b>Score de Confiabilidade: 95%</b><br>
-🟢 Recebimento recomendado
-`;
+    xmlDoc.SetProperty "SelectionNamespaces", "xmlns:nfe='http://www.portalfiscal.inf.br/nfe'"
 
-document.getElementById("resultado").innerHTML = resultado;
+    ' Atribuir ao objeto
+    Set chNFeNode = xmlDoc.SelectSingleNode("//nfe:protNFe/nfe:infProt/nfe:chNFe")
+    Set numNF = xmlDoc.SelectSingleNode("//nfe:infNFe/nfe:ide/nfe:nNF")
+    Set ieEmit = xmlDoc.SelectSingleNode("//nfe:infNFe/nfe:emit/nfe:IE")
+    Set cnpjEmit = xmlDoc.SelectSingleNode("//nfe:infNFe/nfe:emit/nfe:CNPJ")
+    Set ieTransp = xmlDoc.SelectSingleNode("//nfe:transp/nfe:transporta/nfe:IE")
+    Set cnpjTransp = xmlDoc.SelectSingleNode("//nfe:transp/nfe:transporta/nfe:CNPJ")
+    Set placaVeic = xmlDoc.SelectSingleNode("//nfe:transp/nfe:veicTransp/nfe:placa")
+    Set pesoLiquido = xmlDoc.SelectSingleNode("//nfe:transp/nfe:vol/nfe:pesoL")
+    Set vlrUnit = xmlDoc.SelectSingleNode("//nfe:infNFe/nfe:det/nfe:prod/nfe:vUnCom")
+    Set vlrXMLNF = xmlDoc.SelectSingleNode("//nfe:total/nfe:ICMSTot/nfe:vNF")
+    
+    ' Inserir nas cï¿½lulas
+    If Not chNFeNode Is Nothing Then
+        Range("D6").Value = chNFeNode.Text
+    Else
+        Range("D6").Value = "Não encontrado"
+    End If
 
-}
-</script>
+    If Not numNF Is Nothing Then
+        Range("D21").Value = numNF.Text
+    Else
+        Range("D21").Value = "Não encontrado"
+    End If
 
-</body>
-</html>
+    If Not ieEmit Is Nothing Then
+        Range("D18").Value = ieEmit.Text
+    Else
+        Range("D18").Value = "Não encontrado"
+    End If
+
+    If Not cnpjEmit Is Nothing Then
+        Range("D19").Value = cnpjEmit.Text
+    Else
+        Range("D19").Value = "Não encontrado"
+    End If
+
+    If Not cnpjTransp Is Nothing Then
+        Range("D16").Value = cnpjTransp.Text
+    Else
+        Range("D16").Value = "Não encontrado"
+    End If
+
+    If Not placaVeic Is Nothing Then
+        Range("D13").Value = placaVeic.Text
+    Else
+        Range("D13").Value = ""
+    End If
+    If Not vlrXMLNF Is Nothing Then
+        Range("K5").Value = vlrXMLNF.Text
+    Else
+        Range("K5").Value = "NÃO ENCONTRADO"
+        
+MsgBox "Valor da NF não encontrado no XML.", vbCritical, "Erro de validação"
+End If
+
+        
+        
+
+    ' Peso
+    If Not pesoLiquido Is Nothing Then
+        Dim pesoTexto As String
+        pesoTexto = Replace(pesoLiquido.Text, ".", ",")
+
+        If IsNumeric(pesoTexto) Then
+            Range("D22").Value = CDbl(pesoTexto)
+        Else
+            Range("D22").Value = ""
+        End If
+    Else
+        Range("22").Value = ""
+    End If
+
+    ' Inserir data de hoje
+    Range("D17").Value = Format(Now, "dd.mm.yyyy")
+
+    ' Valor unitï¿½rio do produto
+    If Not vlrUnit Is Nothing Then
+        Dim valorUnitTexto As String
+        valorUnitTexto = Replace(vlrUnit.Text, ".", ",")
+
+        If IsNumeric(valorUnitTexto) Then
+            Range("D25").Value = CDbl(valorUnitTexto)
+        Else
+            Range("D25").Value = "Valor inválido"
+        End If
+    Else
+        Range("D25").Value = "Não encontrado"
+    End If
+    
+    ' Buscar informaï¿½ï¿½es adicionais da nota
+    Dim infAdicNode As Object
+    Set infAdicNode = xmlDoc.SelectSingleNode("//nfe:infNFe/nfe:infAdic/nfe:infCpl")
+
+    If Not infAdicNode Is Nothing Then
+        Range("B39").Value = infAdicNode.Text
+    Else
+        Range("B39").Value = "Não encontrado"
+    End If
+
+End Sub
+
+
