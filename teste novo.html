@@ -1,175 +1,314 @@
-Sub TROCA_ProcessarXML()
+<!DOCTYPE html>
+<html lang="pt-BR">
 
-    Dim resposta As VbMsgBoxResult
-    resposta = MsgBox("Deseja baixar o XML via SAP?", vbYesNo + vbQuestion, "Download XML")
+<head>
+<meta charset="UTF-8">
+<title>Painel Inteligente de Recebimento de Grãos</title>
 
-    If resposta = vbYes Then
-        ' Define o nome do arquivo com base na cï¿½lula D6
-        Dim nomeArquivo As String
-        nomeArquivo = Range("D6").Value
+<style>
 
-        ' Verifica se a chave estï¿½ vï¿½lida
-        If nomeArquivo = "" Or nomeArquivo = "@5C\QErro@" Then
-            MsgBox "Chave da nota inválida. Não é possível salvar o XML.", vbCritical
-            Exit Sub
-        End If
+body{
+    font-family: Arial, sans-serif;
+    background:#f5f5f5;
+    padding:20px;
+}
 
-        ' Executa o script SAP para baixar o XML
-        Dim session As Object
-        Set session = GetObject("SAPGUI").GetScriptingEngine.Children(0).Children(0)
+.container{
+    background:white;
+    padding:20px;
+    border-radius:8px;
+    max-width:1200px;
+}
 
-        session.findById("wnd[0]/tbar[0]/okcd").Text = "/nz060063"
-        session.findById("wnd[0]").sendVKey 0
-        session.findById("wnd[0]/usr/radP_XML").SetFocus
-        session.findById("wnd[0]/usr/radP_XML").Select
-        session.findById("wnd[0]/usr/btn%_S_NFEIDX_%_APP_%-VALU_PUSH").press
-        session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/txtRSCSEL_255-SLOW_I[1,0]").Text = nomeArquivo
-        session.findById("wnd[1]/usr/tabsTAB_STRIP/tabpSIVA/ssubSCREEN_HEADER:SAPLALDB:3010/tblSAPLALDBSINGLE/txtRSCSEL_255-SLOW_I[1,0]").caretPosition = 44
-        session.findById("wnd[1]/tbar[0]/btn[8]").press
-        session.findById("wnd[0]").sendVKey 8
-        session.findById("wnd[0]/tbar[0]/btn[3]").press
+.row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:10px;
+}
 
-       
+.campo{
+    width:300px;
+}
 
-        MsgBox "XML salvo com sucesso em: " & caminhoSalvar, vbInformation
-    End If
+input{
+    width:100%;
+    padding:8px;
+}
 
+button{
+    background:#0078D4;
+    color:white;
+    border:none;
+    padding:12px;
+    margin-top:15px;
+    cursor:pointer;
+}
 
+#resultado{
+    margin-top:20px;
+    border:1px solid #ccc;
+    background:#fafafa;
+    padding:15px;
+}
 
-    Call CarregarXML
+.ok{
+    color:green;
+}
 
+.alerta{
+    color:orange;
+}
 
-End Sub
-    
+.erro{
+    color:red;
+}
 
-Sub CarregarXML()
+</style>
+</head>
 
-    Dim xmlDoc As Object
-    Dim chNFeNode As Object
-    Dim numNF As Object
-    Dim ieEmit As Object
-    Dim cnpjEmit As Object
-    Dim ieTransp As Object
-    Dim cnpjTransp As Object
-    Dim placaVeic As Object
-    Dim vlrUnit As Object
-    Dim vlrXMLNF
-    Dim pesoLiquido As Object
-    Dim filePath As String
-    filePath = Application.GetOpenFilename("Arquivos XML (*.xml), *.xml", , "Selecione o XML da NF-e")
-    If filePath = "Falso" Then Exit Sub
+<body>
 
-    Set xmlDoc = CreateObject("MSXML2.DOMDocument.6.0")
-    xmlDoc.async = False
-    xmlDoc.Load filePath
+<div class="container">
 
-    If xmlDoc.ParseError.ErrorCode <> 0 Then
-        MsgBox "Erro ao carregar XML: " & xmlDoc.ParseError.Reason
-        Exit Sub
-    End If
+<h2>Painel Inteligente de Recebimento</h2>
 
-    xmlDoc.SetProperty "SelectionNamespaces", "xmlns:nfe='http://www.portalfiscal.inf.br/nfe'"
+<div class="row">
 
-    ' Atribuir ao objeto
-    Set chNFeNode = xmlDoc.SelectSingleNode("//nfe:protNFe/nfe:infProt/nfe:chNFe")
-    Set numNF = xmlDoc.SelectSingleNode("//nfe:infNFe/nfe:ide/nfe:nNF")
-    Set ieEmit = xmlDoc.SelectSingleNode("//nfe:infNFe/nfe:emit/nfe:IE")
-    Set cnpjEmit = xmlDoc.SelectSingleNode("//nfe:infNFe/nfe:emit/nfe:CNPJ")
-    Set ieTransp = xmlDoc.SelectSingleNode("//nfe:transp/nfe:transporta/nfe:IE")
-    Set cnpjTransp = xmlDoc.SelectSingleNode("//nfe:transp/nfe:transporta/nfe:CNPJ")
-    Set placaVeic = xmlDoc.SelectSingleNode("//nfe:transp/nfe:veicTransp/nfe:placa")
-    Set pesoLiquido = xmlDoc.SelectSingleNode("//nfe:transp/nfe:vol/nfe:pesoL")
-    Set vlrUnit = xmlDoc.SelectSingleNode("//nfe:infNFe/nfe:det/nfe:prod/nfe:vUnCom")
-    Set vlrXMLNF = xmlDoc.SelectSingleNode("//nfe:total/nfe:ICMSTot/nfe:vNF")
-    
-    ' Inserir nas cï¿½lulas
-    If Not chNFeNode Is Nothing Then
-        Range("D6").Value = chNFeNode.Text
-    Else
-        Range("D6").Value = "Não encontrado"
-    End If
+<div class="campo">
+<label>Pedido SAP</label>
+<input id="pedidoSAP">
+</div>
 
-    If Not numNF Is Nothing Then
-        Range("D21").Value = numNF.Text
-    Else
-        Range("D21").Value = "Não encontrado"
-    End If
+<div class="campo">
+<label>Fornecedor</label>
+<input id="fornecedor">
+</div>
 
-    If Not ieEmit Is Nothing Then
-        Range("D18").Value = ieEmit.Text
-    Else
-        Range("D18").Value = "Não encontrado"
-    End If
+<div class="campo">
+<label>Material</label>
+<input id="material">
+</div>
 
-    If Not cnpjEmit Is Nothing Then
-        Range("D19").Value = cnpjEmit.Text
-    Else
-        Range("D19").Value = "Não encontrado"
-    End If
+<div class="campo">
+<label>Centro Origem</label>
+<input id="origem">
+</div>
 
-    If Not cnpjTransp Is Nothing Then
-        Range("D16").Value = cnpjTransp.Text
-    Else
-        Range("D16").Value = "Não encontrado"
-    End If
+<div class="campo">
+<label>Centro Destino</label>
+<input id="destino">
+</div>
 
-    If Not placaVeic Is Nothing Then
-        Range("D13").Value = placaVeic.Text
-    Else
-        Range("D13").Value = ""
-    End If
-    If Not vlrXMLNF Is Nothing Then
-        Range("K5").Value = vlrXMLNF.Text
-    Else
-        Range("K5").Value = "NÃO ENCONTRADO"
-        
-MsgBox "Valor da NF não encontrado no XML.", vbCritical, "Erro de validação"
-End If
+</div>
 
-        
-        
+<hr>
 
-    ' Peso
-    If Not pesoLiquido Is Nothing Then
-        Dim pesoTexto As String
-        pesoTexto = Replace(pesoLiquido.Text, ".", ",")
+<h3>Upload XML</h3>
 
-        If IsNumeric(pesoTexto) Then
-            Range("D22").Value = CDbl(pesoTexto)
-        Else
-            Range("D22").Value = ""
-        End If
-    Else
-        Range("22").Value = ""
-    End If
+<input type="file" id="xmlFile" accept=".xml">
 
-    ' Inserir data de hoje
-    Range("D17").Value = Format(Now, "dd.mm.yyyy")
+<hr>
 
-    ' Valor unitï¿½rio do produto
-    If Not vlrUnit Is Nothing Then
-        Dim valorUnitTexto As String
-        valorUnitTexto = Replace(vlrUnit.Text, ".", ",")
+<div class="row">
 
-        If IsNumeric(valorUnitTexto) Then
-            Range("D25").Value = CDbl(valorUnitTexto)
-        Else
-            Range("D25").Value = "Valor inválido"
-        End If
-    Else
-        Range("D25").Value = "Não encontrado"
-    End If
-    
-    ' Buscar informaï¿½ï¿½es adicionais da nota
-    Dim infAdicNode As Object
-    Set infAdicNode = xmlDoc.SelectSingleNode("//nfe:infNFe/nfe:infAdic/nfe:infCpl")
+<div class="campo">
+<label>Chave NF-e</label>
+<input id="chave" readonly>
+</div>
 
-    If Not infAdicNode Is Nothing Then
-        Range("B39").Value = infAdicNode.Text
-    Else
-        Range("B39").Value = "Não encontrado"
-    End If
+<div class="campo">
+<label>Número NF</label>
+<input id="numeroNF" readonly>
+</div>
 
-End Sub
+<div class="campo">
+<label>CNPJ Emitente</label>
+<input id="cnpjEmit" readonly>
+</div>
 
+<div class="campo">
+<label>IE Emitente</label>
+<input id="ieEmit" readonly>
+</div>
 
+<div class="campo">
+<label>CNPJ Transportador</label>
+<input id="cnpjTransp" readonly>
+</div>
+
+<div class="campo">
+<label>IE Transportador</label>
+<input id="ieTransp" readonly>
+</div>
+
+<div class="campo">
+<label>Placa</label>
+<input id="placa" readonly>
+</div>
+
+<div class="campo">
+<label>Peso Líquido</label>
+<input id="peso" readonly>
+</div>
+
+<div class="campo">
+<label>Valor Unitário</label>
+<input id="vUnit" readonly>
+</div>
+
+<div class="campo">
+<label>Valor NF</label>
+<input id="valorNF" readonly>
+</div>
+
+</div>
+
+<h3>Informações Complementares</h3>
+
+<textarea
+id="informacoes"
+style="width:100%;height:120px;"
+readonly>
+</textarea>
+
+<button onclick="validar()">
+Validar Recebimento
+</button>
+
+<div id="resultado"></div>
+
+</div>
+
+<script>
+
+document
+.getElementById("xmlFile")
+.addEventListener("change", carregarXML);
+
+function texto(xml, tag){
+
+const item =
+xml.getElementsByTagName(tag)[0];
+
+return item ? item.textContent : "";
+
+}
+
+function carregarXML(event){
+
+const file = event.target.files[0];
+
+if(!file){
+    return;
+}
+
+const reader = new FileReader();
+
+reader.onload = function(e){
+
+const parser = new DOMParser();
+
+const xml =
+parser.parseFromString(
+e.target.result,
+"text/xml"
+);
+
+document.getElementById("chave").value =
+texto(xml,"chNFe");
+
+document.getElementById("numeroNF").value =
+texto(xml,"nNF");
+
+document.getElementById("ieEmit").value =
+texto(xml,"IE");
+
+document.getElementById("cnpjEmit").value =
+texto(xml,"CNPJ");
+
+document.getElementById("ieTransp").value =
+texto(xml,"IE");
+
+document.getElementById("cnpjTransp").value =
+texto(xml,"CNPJ");
+
+document.getElementById("placa").value =
+texto(xml,"placa");
+
+document.getElementById("peso").value =
+texto(xml,"pesoL");
+
+document.getElementById("vUnit").value =
+texto(xml,"vUnCom");
+
+document.getElementById("valorNF").value =
+texto(xml,"vNF");
+
+document.getElementById("informacoes").value =
+texto(xml,"infCpl");
+
+};
+
+reader.readAsText(file);
+
+}
+
+function validar(){
+
+let html = "";
+
+html += "<h3>Validações</h3>";
+
+html += "<p class='ok'>✅ XML carregado</p>";
+
+if(
+document.getElementById("chave").value
+){
+html += "<p class='ok'>✅ Chave NF encontrada</p>";
+}
+else{
+html += "<p class='erro'>❌ Chave NF não encontrada</p>";
+}
+
+if(
+document.getElementById("cnpjEmit").value
+){
+html += "<p class='ok'>✅ CNPJ encontrado</p>";
+}
+else{
+html += "<p class='erro'>❌ CNPJ não encontrado</p>";
+}
+
+if(
+document.getElementById("ieEmit").value
+){
+html += "<p class='ok'>✅ IE encontrada</p>";
+}
+else{
+html += "<p class='alerta'>⚠ IE não encontrada</p>";
+}
+
+html += "<hr>";
+
+html += `
+<b>Próxima etapa:</b><br>
+Integração SAP para validar:
+<ul>
+<li>Saldo do Pedido</li>
+<li>Fornecedor</li>
+<li>Material</li>
+<li>Centro Origem</li>
+<li>Centro Destino</li>
+<li>Histórico de recebimentos</li>
+</ul>
+`;
+
+document.getElementById("resultado")
+.innerHTML = html;
+
+}
+
+</script>
+
+</body>
+</html>
